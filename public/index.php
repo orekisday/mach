@@ -1,30 +1,99 @@
 <?php
-// specify the URL endpoint for the model
-$url = 'https://teachablemachine.withgoogle.com/models/KJcbO4o7d/predict';
-// create a new cURL resource
-$ch = curl_init();
 
-// set cURL options
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
+require __DIR__ . '/../vendor/autoload.php';
 
-// specify the image file to send in the request
-$image_path = '/Users/cutesytee/Desktop/hackathon/images/test.jpg';
-$image_data = file_get_contents($image_path);
-$post_data = array('image' => base64_encode($image_data));
-curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+$dispatcher = FastRoute\simpleDispatcher(require_once __DIR__ . '/routes.php');
 
-// send the request and get the response
-$response = curl_exec($ch);
+$httpMethod = $_SERVER['REQUEST_METHOD'];
+$uri = $_SERVER['REQUEST_URI'];
 
-// check for cURL errors
-if(curl_errno($ch)) {
-    echo 'Error: ' . curl_error($ch);
+$routeInfo = $dispatcher->dispatch($httpMethod, $uri);
+
+switch ($routeInfo[0]) {
+    case FastRoute\Dispatcher::NOT_FOUND:
+        // Handle 404 Not Found
+        break;
+    case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
+        // Handle 405 Method Not Allowed
+        break;
+    case FastRoute\Dispatcher::FOUND:
+        $handler = $routeInfo[1];
+        $vars = $routeInfo[2];
+        list($class, $method) = explode('@', $handler, 2);
+        $controller = new $class();
+        $controller->$method($vars);
+        break;
 }
 
-// close the cURL resource
-curl_close($ch);
 
-// print the response from the model
-echo $response;
+class HomeController
+{
+    public function index($vars)
+    {
+        header('Access-Control-Allow-Origin: *'); // Allow requests from any origin
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE'); // Allow the specified HTTP methods
+        header('Access-Control-Allow-Headers: *'); // Allow any header
+
+        $host = 'us-cdbr-east-06.cleardb.net'; // Database host
+        $dbname = 'heroku_22968bb32d3b037'; // Database name
+        $username = 'b7070d63af0c2e'; // Database username
+        $password = '3cd4a5e2'; // Database password
+
+        $conn = new mysqli($host, $username, $password, $dbname);
+
+// Check connection
+        if ($conn->connect_error) {
+            die("Connection failed: " . $conn->connect_error);
+        }
+        $id = $_POST['item'];
+
+// Retrieve data from the database
+        $sql = "SELECT * FROM items2 WHERE item = " . $conn->real_escape_string($id);
+        $result = $conn->query($sql);
+
+        if ($result->num_rows > 0) {
+            // Convert the result set to an array of associative arrays
+            $data = array();
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+
+            // Encode the data as a JSON string
+            $json_data = json_encode($data);
+
+            // Set the content type to JSON and echo the data
+            header('Content-Type: application/json');
+            echo $json_data;
+        } else {
+            echo "No results found";
+        }
+
+// Close the database connection
+        $conn->close();
+    }
+}
+
+class AboutController
+{
+    public function index($vars)
+    {
+        header('Access-Control-Allow-Origin: *'); // Allow requests from any origin
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE'); // Allow the specified HTTP methods
+        header('Access-Control-Allow-Headers: *'); // Allow any header
+
+        echo "About us!";
+    }
+}
+
+class ContactController
+{
+    public function index($vars)
+    {
+        header('Access-Control-Allow-Origin: *'); // Allow requests from any origin
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE'); // Allow the specified HTTP methods
+        header('Access-Control-Allow-Headers: *'); // Allow any header
+
+        echo "Contact us!";
+    }
+}
+
